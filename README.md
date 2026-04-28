@@ -363,6 +363,82 @@ npm run dev
 - Frontend App: `http://localhost:5173`
 - Health Check: `http://localhost:5000/api/health`
 
+## Production Deployment
+
+The recommended deployment setup for this project is:
+
+- **Frontend** on Vercel
+- **Backend API** on Railway
+- **MySQL database** on Railway MySQL or an external managed MySQL provider
+
+### Backend Deployment on Railway
+
+The backend already includes a Railway config file at `backend/railway.toml` with:
+
+- a start command of `npm start`
+- a health check path of `/api/health`
+- restart behavior for failed deployments
+
+When deploying this repository as a monorepo on Railway:
+
+1. Create a new Railway project
+2. Add a MySQL service
+3. Add a backend service connected to this GitHub repository
+4. Set the backend service **Root Directory** to `/backend`
+5. If using config-as-code, set the Railway config file path to `/backend/railway.toml`
+
+### Railway Environment Variables
+
+Set these environment variables on the Railway backend service:
+
+```env
+NODE_ENV=production
+PORT=5000
+DATABASE_URL=mysql://USER:PASSWORD@HOST:PORT/dcart_db
+JWT_SECRET=your_strong_secret_here
+JWT_EXPIRES_IN=1d
+FRONTEND_URL=https://decolores-cart.vercel.app
+FRONTEND_URLS=https://decolores-cart.vercel.app,http://localhost:5173
+ADMIN_NAME=Store Admin
+ADMIN_EMAIL=admin@dcart.local
+ADMIN_PASSWORD=ChangeMe123!
+```
+
+If you use Railway MySQL, you can build `DATABASE_URL` from the service values exposed by Railway.
+
+### Database Deployment
+
+After the backend service is configured, run the Prisma migration and seed process against the production database:
+
+```bash
+npm run prisma:deploy
+npm run seed
+```
+
+### Frontend Connection
+
+Because the frontend is already deployed on Vercel, update the Vercel environment variable:
+
+```env
+VITE_API_URL=https://your-backend-domain.up.railway.app/api
+```
+
+After changing the variable, redeploy the Vercel project so the frontend rebuilds with the new API base URL.
+
+### Health Check
+
+Once Railway finishes deploying, verify the backend at:
+
+```text
+https://your-backend-domain.up.railway.app/api/health
+```
+
+The expected response is:
+
+```json
+{ "status": "ok", "service": "dcart-backend" }
+```
+
 ## Development Notes
 
 - `.env` files are intentionally excluded from version control
